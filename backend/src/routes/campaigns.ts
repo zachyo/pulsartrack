@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import pool from '../config/database';
 import { callReadOnly } from '../services/soroban-client';
 import { CONTRACT_IDS } from '../config/stellar';
+import { requireAuth } from '../middleware/auth';
 
 const router = Router();
 
@@ -40,6 +41,24 @@ router.get('/stats', async (_req: Request, res: Response) => {
     });
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to fetch campaign stats', details: err.message });
+  }
+});
+
+router.post('/', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const address = (req as any).stellarAddress;
+    const { title, contentId, budgetStroops, dailyBudgetStroops } = req.body;
+
+    const { rows } = await pool.query(
+      `INSERT INTO campaigns (campaign_id, advertiser, title, content_id, budget_stroops, daily_budget_stroops)
+       VALUES ((SELECT COALESCE(MAX(campaign_id), 0) + 1 FROM campaigns), $1, $2, $3, $4, $5)
+       RETURNING *`,
+      [address, title, contentId, budgetStroops, dailyBudgetStroops]
+    );
+
+    res.status(201).json(rows[0]);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to create campaign', details: err.message });
   }
 });
 

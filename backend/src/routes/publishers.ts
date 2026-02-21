@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import pool from '../config/database';
 import { callReadOnly, toAddressScVal } from '../services/soroban-client';
 import { CONTRACT_IDS } from '../config/stellar';
+import { requireAuth } from '../middleware/auth';
 
 const router = Router();
 
@@ -47,6 +48,23 @@ router.get('/leaderboard', async (req: Request, res: Response) => {
     res.json({ publishers });
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to fetch publisher leaderboard', details: err.message });
+  }
+});
+
+router.post('/register', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const address = (req as any).stellarAddress;
+    const { displayName, website } = req.body;
+
+    const { rows } = await pool.query(
+      `INSERT INTO publishers (address, display_name, website)
+       VALUES ($1, $2, $3) RETURNING *`,
+      [address, displayName, website]
+    );
+
+    res.status(201).json(rows[0]);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to register publisher', details: err.message });
   }
 });
 
