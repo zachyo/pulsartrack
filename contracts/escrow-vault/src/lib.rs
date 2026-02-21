@@ -491,3 +491,5 @@ impl EscrowVaultContract {
         }
     }
 }
+
+mod test;

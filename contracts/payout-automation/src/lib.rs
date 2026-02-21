@@ -193,3 +193,5 @@ impl PayoutAutomationContract {
         env.storage().persistent().get(&DataKey::PublisherEarnings(publisher))
     }
 }
+
+mod test;

@@ -370,3 +370,5 @@ impl GovernanceDaoContract {
             .unwrap_or(0)
     }
 }
+
+mod test;

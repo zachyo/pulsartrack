@@ -224,3 +224,5 @@ impl AuctionEngineContract {
         env.storage().persistent().get(&DataKey::HighestBid(auction_id))
     }
 }
+
+mod test;
