@@ -2,6 +2,7 @@ import { checkDbConnection } from "../config/database";
 import redisClient from "../config/redis";
 import { getHorizonServer } from "../config/stellar";
 import { getServer } from "./soroban-client";
+import { logger } from "../lib/logger";
 
 export interface HealthCheckResult {
   database: "ok" | "error";
@@ -62,4 +63,14 @@ export async function runAllChecks(): Promise<HealthCheckResult> {
     soroban_rpc,
     horizon,
   };
+}
+
+export async function startHealthService() {
+  logger.info("Health service started");
+  // ...existing code...
+}
+
+export function checkHealth() {
+  logger.debug("Health check invoked");
+  // ...existing code...
 }
