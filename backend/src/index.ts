@@ -3,6 +3,9 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import { v4 as uuidv4 } from "uuid";
+import pinoHttp from "pino-http";
+import { logger } from "./lib/logger";
 import { createServer } from "http";
 import apiRoutes from "./api/routes";
 import {
@@ -29,7 +32,15 @@ app.use(
     credentials: true,
   }),
 );
-app.use(morgan("combined"));
+
+// Add request-level correlation ID via middleware + structured logging
+app.use(
+  pinoHttp({
+    logger,
+    genReqId: (req) => req.headers["x-request-id"] || uuidv4(),
+  }),
+);
+
 app.use(express.json({ limit: "10mb" }));
 app.use(rateLimit());
 
@@ -56,38 +67,38 @@ async function start() {
   const dbOk = await checkDbConnection();
   if (!dbOk) {
     if (process.env.NODE_ENV === "production") {
-      console.error(
+      logger.fatal(
         "[DB] PostgreSQL connection failed — aborting in production",
       );
       process.exit(1);
     }
-    console.warn("[DB] Could not connect to PostgreSQL — running without DB");
+    logger.warn("[DB] Could not connect to PostgreSQL — running without DB");
   } else {
-    console.log("[DB] PostgreSQL connected");
+    logger.info("[DB] PostgreSQL connected");
   }
 
   // Verify Prisma client connectivity
   try {
     await prisma.$connect();
-    console.log("[DB] Prisma client connected");
+    logger.info("[DB] Prisma client connected");
   } catch (err) {
     if (process.env.NODE_ENV === "production") {
-      console.error("[DB] Prisma connection failed — aborting in production");
+      logger.fatal("[DB] Prisma connection failed — aborting in production");
       process.exit(1);
     }
-    console.warn("[DB] Prisma client unavailable — running without ORM");
+    logger.warn("[DB] Prisma client unavailable — running without ORM");
   }
 
   server.listen(PORT, () => {
-    console.log(`[PulsarTrack API] Listening on http://localhost:${PORT}`);
-    console.log(`[PulsarTrack WS]  WebSocket on ws://localhost:${PORT}/ws`);
-    console.log(
+    logger.info(`[PulsarTrack API] Listening on http://localhost:${PORT}`);
+    logger.info(`[PulsarTrack WS]  WebSocket on ws://localhost:${PORT}/ws`);
+    logger.info(
       `[Network]         ${process.env.STELLAR_NETWORK || "testnet"}`,
     );
   });
 }
 
 start().catch((err) => {
-  console.error("Failed to start server:", err);
+  logger.error(err, "Failed to start server");
   process.exit(1);
 });
